@@ -55,8 +55,7 @@ class Tracker:
         writer.close()
 
 
-
-if __name__ == '__main__':
+def main():
     track = Tracker()
     loop = asyncio.get_event_loop()
     coro = asyncio.start_server(track.dispatch, TRACKER_IP, 30030, loop=loop)
@@ -73,3 +72,7 @@ if __name__ == '__main__':
     server.close()
     loop.run_until_complete(server.wait_closed())
     loop.close()
+
+
+if __name__ == '__main__':
+    main()
