@@ -39,7 +39,7 @@ class Tracker:
 
             return 'Error'
 
-    async def serving(self, reader, writer):
+    async def dispatch(self, reader, writer):
         data = await reader.read(100)
         message = data.decode()
         addr = writer.get_extra_info('peername')
@@ -55,10 +55,11 @@ class Tracker:
         writer.close()
 
 
+
 if __name__ == '__main__':
     track = Tracker()
     loop = asyncio.get_event_loop()
-    coro = asyncio.start_server(track.serving, TRACKER_IP, 30030, loop=loop)
+    coro = asyncio.start_server(track.dispatch, TRACKER_IP, 30030, loop=loop)
     server = loop.run_until_complete(coro)
 
     # Serve requests until Ctrl+C is pressed
