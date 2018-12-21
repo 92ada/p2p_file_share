@@ -45,14 +45,13 @@ class Client:
 
     def _get_response(self, message, addr):
         # receive format:
-        # [first 4bytes: an int for the block id]
-        # [then: seed info]
+        # str(block_id) + '\n' + seed_info
 
 
         # push format:
-        # [first 4bytes: an int for the block id]
-        #       if -1, didn't find or refuse
-        # [next 2bytes: checksum]
+        # [first 4bytes: an unsigned int for the block id]
+        #       if the first bit is 1, didn't find or refuse
+        # [next 4bytes: checksum, an unsigned int]
         # [then: data]
 
         # TODO: add checksum
@@ -92,18 +91,15 @@ class Client:
 
     def _receive(self):
         pass
-        
+
     def download(self, seed):
         path = input('Please input a sharing path: ')
         self.serving(path)
 
 
 
-
-
-
 if __name__ == '__main__':
-    seed = 'test.txt'
+    seed = utils.make_seed('#')
     client = Client()
     client.download(seed)
     # client.quit()
