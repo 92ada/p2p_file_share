@@ -17,7 +17,7 @@ def get_file_list(root):
         if os.path.isfile(path):
             result.append(path)
         else:
-            queue.append(path)
+            queue += os.listdir(path)
 
 def get_seed_path(root, seed):
     queue = [root]
