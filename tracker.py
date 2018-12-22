@@ -31,11 +31,11 @@ class Tracker:
 
             if message[0] == 'Query':
                 seed = message[1]
-                ret = []
+                ret = ''
                 for s in seeder_list:
                     if seed in seeder_list[s]:
-                        ret.append(s)
-                return ret
+                        ret += '\n' + s[0] + ':' + s[1]
+                return ret[1:]
 
             return 'Error'
 

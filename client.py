@@ -6,6 +6,7 @@ class Client:
     def __init__(self):
         self.loop = asyncio.get_event_loop()
         self.root = ''
+        self.data_list = None
 
     async def _send(self, message, loop):
         reader, writer = await asyncio.open_connection(TRACKER_IP, 30030,
@@ -46,25 +47,39 @@ class Client:
         self.loop.close()
 
     def _get_response(self, message, addr):
-        # receive format:
-        # str(CHUNK_id) + '\n' + seed_info
-        CHUNK_id, seed_info = message.decode().split('\n')
-        seed_path = utils.get_seed_path(self.root, seed_info)
-        if seed_path == None:
-            return b'\xff\xff\xff\xff'
+        # query format (notice: convert to bytes):
+        # str('Query\n') + str(chunk_id) + '\n' + seed_info
 
-        data = open(path, 'rb').read()
-        push_data = data[CHUNK_id*CHUNK_SIZE:(CHUNK_id+1)*CHUNK_SIZE]
-        # checksum = utils.get_checksum(push_data)
-        ret = utils.int_to_four_bytes(CHUNK_id)
-        ret += utils.int_to_four_bytes(CHUNK_id)
-        ret += push_data
+        head, data = message.split(b'\n\n')
+        head_list = head.decode().split('\n')
+        if head_list[0] == 'Query':
+            chunk_id = int(head_list[1])
+            seed = head_list[2]
+            seed_path = utils.get_seed_path(self.root, seed, chunk_id)
+            if seed_path == None:
+                head = 'Result\n' + str(-1)
+                return head.encode()
 
-        # push format:
-        # [first 4bytes: an unsigned int for the CHUNK id]
-        #       if all bits are 1, didn't find or refuse
-        # [then: data]
-        return ret
+            data = open(path, 'rb').read()
+            push_data = data[chunk_id*CHUNK_SIZE:(chunk_id+1)*CHUNK_SIZE]
+            head = 'Result\n' + str(chunk_id) + '\n\n'
+            return head.encode() + push_data
+
+        # response format:
+        # str('Result\n') + str(chunk_id) + '\n\n' + [bytes data]
+        # if chunk_id == -1, data not found or refused
+
+        if head_list[0] == 'Result':
+            chunk_id = int(head_list[1])
+
+
+
+
+
+
+
+
+
 
     async def dispatch(self, path, range: tuple):
         data = await reader.read(100)
@@ -89,14 +104,13 @@ class Client:
 
         # Serve requests until Ctrl+C is pressed
         print('Seeder Serving on {}'.format(server.sockets[0].getsockname()))
+        self._join()
+        self._update(self.root)
+        # TODO: logic here need to be edit to correspond with the doc
         try:
             loop.run_forever()
         except KeyboardInterrupt:
             pass
-        self._join()
-        # TODO: edit the logic to tell tracker servering addr
-        # addr format: str(ip)+':'+str(port)
-        self._update(self.root)
 
     def _receive(self):
         pass

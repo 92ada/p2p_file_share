@@ -22,7 +22,7 @@ def get_file_list(root):
     return result
 
 def get_seed_path(root, seed, id):
-    seed_list = seed.split('\n')
+    seed_list = seed.decode().split('\n')
     file_len = int(seed_list[1])
     hash_val = seed_list[id+2]
     while queue != []:
@@ -53,6 +53,7 @@ def get_md5_hash(data):
 def make_seed(path):
     # format: file_name + '\n' + str(file_len) \
     #           + '\n' + hash_val[0] + '\n' + ... + '\n' + hash_val[n]
+    # notice: convert str above to bytes
     file_name = path.split('/')[-1]
     file_len = os.path.getsize(path)
     ret = file_name + '\n' + str(file_len)
@@ -62,7 +63,7 @@ def make_seed(path):
             if not data: break
             hash_val = get_md5_hash(data)
             ret += '\n' + hash_val
-    return ret
+    return ret.encode()
 
 def int_to_four_bytes(num):
     return (num).to_bytes(4, byteorder='big')
