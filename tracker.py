@@ -9,35 +9,36 @@ class Tracker:
     def response(self, message, addr) -> str:
         if message == 'Join':
             if addr in self.seeder_list.keys():
-                return 'OK'
+                return b'OK'
 
             self.seeder_list[addr] = set()
-            return 'OK'
+            return b'OK'
 
         elif message == 'Quit':
             self.seeder_list.pop(addr, None)
-            return 'OK'
+            return b'OK'
 
         elif message == 'Reset':
             self.seeder_list[addr] = set()
-            return 'OK'
+            return b'OK'
 
         else:
             message = message.split('\n')
 
             if message[0] == 'Update':
+                print(self.seeder_list)
                 self.seeder_list[addr].update(message[1:])
-                return 'OK'
+                return b'OK'
 
             if message[0] == 'Query':
-                seed = message[1]
+                big_seed = message[1]
                 ret = ''
                 for s in seeder_list:
-                    if seed in seeder_list[s]:
+                    if big_seed in seeder_list[s]:
                         ret += '\n' + s[0] + ':' + s[1]
-                return ret[1:]
+                return b'List' + ret[1:].encode()
 
-            return 'Error'
+            return b'Error'
 
     async def dispatch(self, reader, writer):
         data = await reader.read(100)
@@ -48,7 +49,7 @@ class Tracker:
         print("Received %r from %r" % (message, addr))
 
         print("Send: %r" % response)
-        writer.write(response.encode())
+        writer.write(response)
         await writer.drain()
 
         print("Close the client socket")
