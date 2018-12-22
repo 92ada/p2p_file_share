@@ -1,6 +1,6 @@
 import asyncio
 import utils
-
+from utils import TRACKER_IP
 
 class Tracker:
     def __init__(self):

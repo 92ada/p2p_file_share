@@ -1,6 +1,6 @@
 import asyncio
 import utils
-from utils import TRACKER_IP, BLOCK_SIZE
+from utils import TRACKER_IP, CHUNK_SIZE
 
 class Client:
     def __init__(self):
@@ -47,23 +47,22 @@ class Client:
 
     def _get_response(self, message, addr):
         # receive format:
-        # str(block_id) + '\n' + seed_info
-        block_id, seed_info = message.decode().split('\n')
+        # str(CHUNK_id) + '\n' + seed_info
+        CHUNK_id, seed_info = message.decode().split('\n')
         seed_path = utils.get_seed_path(self.root, seed_info)
         if seed_path == None:
             return b'\xff\xff\xff\xff'
 
         data = open(path, 'rb').read()
-        push_data = data[block_id*BLOCK_SIZE:(block_id+1)*BLOCK_SIZE]
-        checksum = utils.get_checksum(push_data)
-        ret = utils.int_to_four_bytes(block_id)
-        ret += utils.int_to_four_bytes(block_id)
+        push_data = data[CHUNK_id*CHUNK_SIZE:(CHUNK_id+1)*CHUNK_SIZE]
+        # checksum = utils.get_checksum(push_data)
+        ret = utils.int_to_four_bytes(CHUNK_id)
+        ret += utils.int_to_four_bytes(CHUNK_id)
         ret += push_data
 
         # push format:
-        # [first 4bytes: an unsigned int for the block id]
+        # [first 4bytes: an unsigned int for the CHUNK id]
         #       if all bits are 1, didn't find or refuse
-        # [next 4bytes: checksum, an unsigned int]
         # [then: data]
         return ret
 
