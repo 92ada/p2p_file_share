@@ -38,9 +38,9 @@ class Tracker:
         addr = writer.get_extra_info('peername')
 
         response = self.response(message, addr)
-        print("Received %r from %r" % (message, addr))
+        print(f'From {addr} received:\n{message}')
 
-        print("Send: %r" % response)
+        print(f'Response:\n{response}')
         writer.write(response.encode('utf-8'))
         await writer.drain()
 
