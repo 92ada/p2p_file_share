@@ -20,16 +20,14 @@ class Client:
             return ret.encode()
 
         if code == 'Update':
-            # Make a big seed for each file in the file path
-            seed_list = [utils.make_big_seed(path) for path in utils.get_file_list(self.root)]
+            seed_list = [utils.make_big_hash(path) for path in utils.get_file_list(self.root)]
             message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
                         + '\n' + '\n'.join(seed_list)
             return message.encode()
 
         if code == 'Query':
-            # Make a seed for query
-            big_seed = self.seed.split(b'\n')[2]
-            return b'Query\n' + big_seed
+            big_hash = self.seed.split(b'\n')[2]
+            return b'Query\n' + big_hash
 
         if code == 'Test' or 'Download':
             # format: 'Test\n' + str(id) + '\n' + seed
@@ -118,8 +116,6 @@ class Client:
         consumer_coro = self.consume(queue)
         loop.run_until_complete(asyncio.gather(producer_coro, consumer_coro))
 
-
-        time.sleep(1)
         print('Get accessible addr list: ')
         print(self.addr_list)
 
