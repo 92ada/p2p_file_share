@@ -1,35 +1,42 @@
 import asyncio
 import utils
 from utils import TRACKER_IP, CHUNK_SIZE
-from utils import UPDATE_INTERVAL
+from utils import UPDATE_INTERVAL,write_data
 from threading import Thread
 import time
 import copy 
 
 class Client:
-    def __init__(self, addr, root_path):
+    def __init__(self, addr, root_path=None):
         self.tracker_addr = addr
         self.addr_list = []
         self.seed = None
         self.data = None
         # self.root = input('Please input your share path: ')
-        self.root = root_path
+        if root_path:
+            self.root = root_path
         self.serve_port = 30123
 
     def get_message(self, code, chunk_id=None):
-        if code == 'Join':
-            ret = 'Join\n' + utils.get_ip() + ':' + str(self.serve_port)
-            return ret.encode()
+        # if code == 'Join':
+        #     # ret = 'Join\n' + utils.get_ip() + ':' + str(self.serve_port)
+        #     ret = 'Join\n\n'
+        #     return ret.encode()
 
         if code == 'Update':
-            seed_list = [utils.make_big_hash(path) for path in utils.get_file_list(self.root)]
-            message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
-                        + '\n' + '\n'.join(seed_list)
+            seed_list = [utils.make_seed(path) for path in utils.get_file_list(self.root)]
+            # message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
+            #             + '\n' + '\n'.join(seed_list)
+
+            message = 'Update\n\n'
+            for seed in seed_list:
+                message += seed + '\n\n'
+
             return message.encode()
 
         if code == 'Query':
             big_hash = self.seed.split(b'\n')[2]
-            return b'Query\n' + big_hash
+            return b'Query\n\n' + big_hash
 
         if code == 'Test' or 'Download':
             # format: 'Test\n' + str(id) + '\n' + seed
@@ -119,7 +126,8 @@ class Client:
         # producer_coro = self.produce(queue)
         # consumer_coro = self.consume(queue)
         # loop.run_until_complete(asyncio.gather(producer_coro, consumer_coro))
-        loop.run_until_complete(self.update_status())
+        if self.root:
+            loop.run_until_complete(self.update_status())
         loop.run_until_complete(self.get_address_list())
         loop.run_until_complete(self.seed_check())
 
@@ -141,11 +149,20 @@ class Client:
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
         print(self.data)
+        file_name = seed.decode().split('\n')[0]
+        write_data(self.data, "./"+file_name)
 
 
-if __name__ == '__main__':
-    root_path = './'
-    seed = utils.make_seed('./README.md')
-    client = Client((TRACKER_IP, 30030),root_path)
+# if __name__ == '__main__':
+#     root_path = './'
+#     seed = utils.make_seed('./README.md')
+#     client = Client((TRACKER_IP, 30030),root_path)
+#     client.download(seed)
+#     # client.quit()
+
+def download(seed, root_path=None):
+    # root_path = './'
+    # seed = utils.make_seed('./README.md')
+    client = Client((TRACKER_IP, 30030), root_path=root_path)
     client.download(seed)
-    # client.quit()
+    client.quit()

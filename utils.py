@@ -101,6 +101,12 @@ def four_bytes_to_int(bytes):
     return int.from_bytes(bytes, byteorder='big')
 
 
+def write_data(data_list, data_path):
+    ''' Write list of data chuncks into data file '''
+    f = open(data_path , "wb+")
+    for data in data_list:
+        f.write(data)
+    f.close()
 
 # Seems unnecessary to use checksum
 
