@@ -24,21 +24,24 @@ class Client:
         #     return ret.encode()
 
         if code == 'Update':
+            print("Get message update")
             seed_list = [utils.make_seed(path) for path in utils.get_file_list(self.root)]
             # message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
             #             + '\n' + '\n'.join(seed_list)
 
             message = 'Update\n\n'
             for seed in seed_list:
-                message += seed + '\n\n'
+                message += seed.decode() + '\n\n'
 
             return message.encode()
 
         if code == 'Query':
+            print("Get message query")
             big_hash = self.seed.split(b'\n')[2]
             return b'Query\n\n' + big_hash
 
         if code == 'Test' or 'Download':
+            print("Get message TD")
             # format: 'Test\n' + str(id) + '\n' + seed
             ret = code + '\n' + str(chunk_id) + '\n\n'
             return ret.encode() + self.seed
@@ -46,35 +49,64 @@ class Client:
 
     async def update_status(self, quit_flag=None):
         '''Update seeds to tracker '''
+        print("Init")
         while True:
+            print("Update")
             reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
             writer.write(self.get_message('Update'))
             # print("###### File List ########")
             # print(self.get_message('Update'))
             await writer.drain()
+            writer.close()
             data = await reader.read(100)
-            if not quit_flag:
-                await asyncio.sleep(UPDATE_INTERVAL)
-            else:
-                break 
+            break 
+            # if not quit_flag:
+            #     await asyncio.sleep(UPDATE_INTERVAL)
+            # else:
+            #     break 
 
     async def get_address_list(self):
         ''' query a seed for tracker and get address list '''
         # open the connection to tracker
-        reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
+        # reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
 
         # Query given seed to checker
+        # while True:
+        #     writer.write(self.get_message('Query'))
+        #     await writer.drain()
+        #     writer.close()
+        #     print("Flag")
+        #     data = await reader.read(100)
+        #     print("Read Result:")
+        #     print(data.decode())
+        #     message = data.decode().split('\n')
+        #     if message[0] == 'List':
+        #         addr_list = message[1:]
+        #         break
+
         while True:
+            reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
             writer.write(self.get_message('Query'))
             await writer.drain()
+            writer.close()
+            reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
+            # print("Flag")
             data = await reader.read(100)
+            # print("Flag")
+            print("Message Origin:{}".format(data))
             message = data.decode().split('\n')
+            # print("Message:{}".format(message))
             if message[0] == 'List':
                 addr_list = message[1:]
                 break
 
-        writer.close()
-        await writer.wait_closed()
+        # writer.close()
+        # await writer.wait_closed()
+
+        # writer.close()
+
+        # writer.close()
+        # await writer.wait_closed()
         self.addr_list = addr_list
 
         # for addr in addr_list:
@@ -129,6 +161,7 @@ class Client:
         if self.root:
             loop.run_until_complete(self.update_status())
         loop.run_until_complete(self.get_address_list())
+        print("List Get")
         loop.run_until_complete(self.seed_check())
 
         print('Get accessible addr list: ')
@@ -153,16 +186,16 @@ class Client:
         write_data(self.data, "./"+file_name)
 
 
-# if __name__ == '__main__':
-#     root_path = './'
-#     seed = utils.make_seed('./README.md')
-#     client = Client((TRACKER_IP, 30030),root_path)
-#     client.download(seed)
-#     # client.quit()
-
-def download(seed, root_path=None):
-    # root_path = './'
-    # seed = utils.make_seed('./README.md')
-    client = Client((TRACKER_IP, 30030), root_path=root_path)
+if __name__ == '__main__':
+    root_path = './file_set'
+    seed = utils.make_seed('../README.md')
+    client = Client((TRACKER_IP, 30030),root_path)
     client.download(seed)
-    client.quit()
+    # client.quit()
+
+# def download(seed, root_path=None):
+#     # root_path = './'
+#     # seed = utils.make_seed('./README.md')
+#     client = Client((TRACKER_IP, 30030), root_path=root_path)
+#     client.download(seed)
+#     client.quit()
