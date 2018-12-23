@@ -1,64 +1,64 @@
 ### Roles
 
-* tracker 
+* tracker
 
   * keep a list of correspondence
     * userid, file list, address
     * map file name to a set of a set of request   
   * multiple processes
     * a process listen and build network (register new nodes)
-    * a process handling file request 
+    * a process handling file request
 
-* user 
+* user
 
-  * request to join 
+  * request to join
   * request to leave
-  * send file list 
+  * send file list
   * send file request
-  * send trasfering request (requesting, start downlaod, fnish downlad)
+  * send transferring request (requesting, start download, finish download)
   * multiple processes
     * a process to listen to the request
-    * a new process to request and after get request, add new processes for each node 
+    * a new process to request and after get request, add new processes for each node
 
 
 
-### Procedure 
+### Procedure
 
 #### Join:
 
-1. user: request to join 
+1. user: request to join
 2. tracker: request for file list
 3. user: send file list
-4. tracker ack to join 
+4. tracker ack to join
 
 
 
 #### Maintain:
 
-1. all users preodically send message to tracker, to inform it is still alive. 
-2. update file list if needed 
+1. all users preodically send message to tracker, to inform it is still alive.
+2. update file list if needed
 
 
 
-#### Download 
+#### Download
 
-1. user: request a file 
-2. tracker: check in the list, retrun a request all avaialbale dest IP and request message 
-3. user: 
-   1. for all available user in the list, make decision. 
+1. user: request a file
+2. tracker: check in the list, retrun a request all avaialbale dest IP and request message
+3. user:
+   1. for all available user in the list, make decision.
    2. Open multiple processes, each for a node to reqeust, and recieve files
-   3. After obtaining all files, assemble them. 
+   3. After obtaining all files, assemble them.
 
 
 
 #### Leave
 
 1. user: request to leave
-2. tracker: ack to leave and delete all files related to the user. 
+2. tracker: ack to leave and delete all files related to the user.
 
 
 
-### Code Implementation 
+### Code Implementation
 
 轮子：收信，发信
 
@@ -101,7 +101,7 @@ user：
    1. 获取文件列表并储存
    2. 收到request时发送文件
    3. 文件的assembling
-3. user (part 2): 
+3. user (part 2):
    1. 进网请求部分
    2. 周期性维护状态
    3. report & slides

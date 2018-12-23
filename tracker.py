@@ -33,10 +33,10 @@ class Tracker:
                 return b'OK'
 
             if message[0] == 'Query':
-                big_seed = message[1]
+                big_hash = message[1]
                 ret = ''
                 for addr in self.seeder_list:
-                    if big_seed in self.seeder_list[addr]:
+                    if big_hash in self.seeder_list[addr]:
                         ret += '\n' + addr
                 return b'List' + ret.encode()
 
