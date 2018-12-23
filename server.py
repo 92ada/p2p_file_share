@@ -7,10 +7,9 @@ class Server:
         self.root = '/Users/apple/p2p_file_share'
 
     def response(self, message) -> str:
-        print(message)
-        head, seed = message.split('\n\n')
-        head_list = head.split('\n')
-        id = head_list[1]
+        head, seed = message.split(b'\n\n')
+        head_list = head.decode().split('\n')
+        id = int(head_list[1])
         seed_path = utils.get_seed_path(self.root, seed, id)
         if seed_path == None:
             return b'Error'
@@ -22,7 +21,7 @@ class Server:
             with open(seed_path, 'rb') as f:
                 f.seek(id*CHUNK_SIZE)
                 data = f.read(CHUNK_SIZE)
-            head = 'Result\n' + str(chunk_id) + '\n\n'
+            head = 'Result\n' + str(id) + '\n\n'
             return head.encode() + data
 
 
@@ -30,11 +29,9 @@ class Server:
         while True:
             data = await reader.read(1024)
             if data == b'': continue
-            print('got here')
-            message = data.decode()
             addr = writer.get_extra_info('peername')
-            response = self.response(message)
-            print("Received %r from %r" % (message, addr))
+            response = self.response(data)
+            print("Received %r from %r" % (data, addr))
             print("Send: %r" % response)
             writer.write(response)
             await writer.drain()

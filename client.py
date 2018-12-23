@@ -31,9 +31,8 @@ class Client:
 
         if code == 'Test' or 'Download':
             # format: 'Test\n' + str(id) + '\n' + small_seed
-            small_seed = self.seed.split(b'\n')[2+chunk_id]
             ret = code + '\n' + str(chunk_id) + '\n\n'
-            return ret.encode() + small_seed
+            return ret.encode() + self.seed
 
 
     def get_response(self, message):
@@ -99,7 +98,7 @@ class Client:
         writer.write(self.get_message('Download', id))
         await writer.drain()
         message = await reader.read(1024)
-        head, data = message.split(b'\n\n')
+        head, data = message.split(b'\n\n', 1)
         head_list = head.decode().split('\n')
         if head_list[0] == 'Result':
             self.data[int(head_list[1])] = data
@@ -126,14 +125,15 @@ class Client:
             print('Download failed.')
             return
 
-        self.data = [None] * addr_num
         tasks = []
         file_len = seed.decode().split('\n')[1]
         chunk_num = (int(file_len)-1)//CHUNK_SIZE + 1
+        self.data = [None] * chunk_num
         for id in range(chunk_num):
             tasks.append(self._download(self.addr_list[id%addr_num], id))
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
+        print(self.data)
 
 
 

@@ -22,18 +22,25 @@ def get_file_list(root):
     return result
 
 def get_seed_path(root, seed, id):
+    print(seed)
     seed_list = seed.decode().split('\n')
     file_len = int(seed_list[1])
-    hash_val = seed_list[id+2]
+    print(type(id))
+    hash_val = seed_list[id+3]
+    queue = [root]
     while queue != []:
         path = queue.pop(0)
         if os.path.isfile(path):
             if os.path.getsize(path) == int(file_len):
-                with open(path, 'rb') as f:
-                    f.seek(id*CHUNK_SIZE, 0)
-                    data = f.read(CHUNK_SIZE)
-                if get_md5_hash(data) == hash_val:
-                    return path
+                if id == -1:
+                    if make_big_seed(path) == hash_val:
+                        return path
+                else:
+                    with open(path, 'rb') as f:
+                        f.seek(id*CHUNK_SIZE, 0)
+                        data = f.read(CHUNK_SIZE)
+                    if get_md5_hash(data) == hash_val:
+                        return path
         else:
             queue += [path + '/' + x for x in os.listdir(path)]
     return None
