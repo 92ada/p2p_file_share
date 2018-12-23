@@ -1,6 +1,7 @@
 import asyncio
 import utils
-from utils import TRACKER_IP, CHUNK_SIZE
+from utils import TRACKER_IP, CHUNK_SIZE, UPDATE_INTERVAL
+from click import download
 
 class Server:
     def __init__(self):
@@ -37,6 +38,23 @@ class Server:
             writer.write(response)
             await writer.drain()
             break
+    
+    async def update_status(self, quit_flag=None):
+        '''Update seeds to tracker '''
+        while True:
+            reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
+            seed_list = [utils.make_seed(path) for path in utils.get_file_list(self.root)]
+            message = 'Update\n\n'
+            for seed in seed_list:
+                message += seed + '\n\n'
+            # writer.write(self.get_message('Update'))
+            writer.write(message.encode())
+            await writer.drain()
+            data = await reader.read(100)
+            if not quit_flag:
+                await asyncio.sleep(UPDATE_INTERVAL)
+            else:
+                break 
 
 
 def main():
@@ -45,6 +63,10 @@ def main():
     coro = asyncio.start_server(server.dispatch, utils.get_ip(), 30123, loop=loop)
     sv = loop.run_until_complete(coro)
 
+    task_update = asyncio.ensure_future(server.update_status())
+
+    seed = utils.make_seed('./README.md')
+    download(seed, "./")
     # Serve requests until Ctrl+C is pressed
     print('Serving on {}'.format(sv.sockets[0].getsockname()))
     try:
