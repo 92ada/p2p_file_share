@@ -1,7 +1,7 @@
 import asyncio
 import utils
 from utils import TRACKER_IP, CHUNK_SIZE
-from utils import UPDATE_INTERVAL
+from utils import UPDATE_INTERVAL,write_data
 from threading import Thread
 import time
 import copy 
@@ -141,6 +141,8 @@ class Client:
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
         print(self.data)
+        file_name = seed.decode().split('\n')[0]
+        write_data(self.data, "./"+file_name)
 
 
 if __name__ == '__main__':
