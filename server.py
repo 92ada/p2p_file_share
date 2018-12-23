@@ -4,9 +4,10 @@ from utils import TRACKER_IP, CHUNK_SIZE
 
 class Server:
     def __init__(self):
-        self.root = '/Users/apple/p2p_file_share'
+        self.root = '/Users/apple/p2p_file_share' # root directory of file list 
 
     def response(self, message) -> str:
+        ''' Decode response message '''
         head, seed = message.split(b'\n\n')
         head_list = head.decode().split('\n')
         id = int(head_list[1])

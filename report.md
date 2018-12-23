@@ -93,7 +93,9 @@ In a P2P file system, a node in the network might send request to the tracker fo
 
 #### Representation of seeds
 
-**Data Structure:**
+**Data Structure:** 
+
+
 
 **Method of file querying:**
 
@@ -106,6 +108,10 @@ In a P2P file system, a node in the network might send request to the tracker fo
 
 
 ### References
+
+
+
+
 
 
 

@@ -20,17 +20,19 @@ class Client:
             return ret.encode()
 
         if code == 'Update':
+            # Make a big seed for each file in the file path
             seed_list = [utils.make_big_seed(path) for path in utils.get_file_list(self.root)]
             message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
                         + '\n' + '\n'.join(seed_list)
             return message.encode()
 
         if code == 'Query':
+            # Make a seed for query
             big_seed = self.seed.split(b'\n')[2]
             return b'Query\n' + big_seed
 
         if code == 'Test' or 'Download':
-            # format: 'Test\n' + str(id) + '\n' + small_seed
+            # format: 'Test\n' + str(id) + '\n' + seed
             ret = code + '\n' + str(chunk_id) + '\n\n'
             return ret.encode() + self.seed
 
@@ -39,7 +41,9 @@ class Client:
         pass
 
     async def produce(self, queue):
+        # open the connection to tracker
         reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
+
         while True:
             writer.write(self.get_message('Join'))
             await writer.drain()
@@ -66,7 +70,6 @@ class Client:
 
         for addr in addr_list:
             # produce an item
-
             print('add {} to the queue'.format(addr))
             await queue.put(addr)
 
@@ -134,8 +137,6 @@ class Client:
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
         print(self.data)
-
-
 
 
 if __name__ == '__main__':
