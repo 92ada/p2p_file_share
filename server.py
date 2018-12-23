@@ -39,7 +39,7 @@ class Server:
             break
 
 
-def main():
+def server_main():
     server = Server()
     loop = asyncio.get_event_loop()
     coro = asyncio.start_server(server.dispatch, utils.get_ip(), 30123, loop=loop)
@@ -59,4 +59,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    server_main()

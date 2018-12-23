@@ -5,6 +5,9 @@ from utils import UPDATE_INTERVAL
 from threading import Thread
 import time
 import copy 
+import multiprocessing as mp 
+import numpy as np 
+from server import server_main
 
 class Client:
     def __init__(self, addr, root_path):
@@ -23,8 +26,11 @@ class Client:
 
         if code == 'Update':
             seed_list = [utils.make_big_hash(path) for path in utils.get_file_list(self.root)]
-            message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
-                        + '\n' + '\n'.join(seed_list)
+            # message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
+                        # + '\n' + '\n'.join(seed_list)
+            message = 'Update\n'
+            for seed in seed_list:
+                message += seed + '\n'
             return message.encode()
 
         if code == 'Query':
@@ -143,9 +149,40 @@ class Client:
         print(self.data)
 
 
+class Worker(mp.Process):
+    def __init__ (self, inQ, outQ, random_seed):
+        super(Worker, self).__init__(target=self.start)
+        self.inQ = inQ
+        self.outQ = outQ
+    
+    def run (self):
+        while True:
+            func, param = self.inQ.get()  
+            if param:
+                func(param)
+            else:
+                func()
+            result = 0
+            self.outQ.put(result)
+
+
+def create_worker (num):
+    for i in range(num):
+        worker.append(Worker(mp.Queue(), mp.Queue(), np.random.randint(0, 10 ** 9)))
+        worker[i].start()
+
+def finish_worker ():
+    for w in worker:
+        w.terminate()
+
 if __name__ == '__main__':
     root_path = './'
     seed = utils.make_seed('./README.md')
+    worker = []
+    worker_num = 2
+    create_worker(worker_num)
     client = Client((TRACKER_IP, 30030),root_path)
-    client.download(seed)
+    # client.download(seed)
+    worker[0].put([client.download, seed])
+    worker[1].put([server_main, 0])
     # client.quit()
