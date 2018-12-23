@@ -7,7 +7,9 @@ import socket
 import hashlib
 
 TRACKER_IP = '192.168.123.29'
+TRACKER_PORT = 30030
 CHUNK_SIZE = 512
+UPDATE_INTERVAL = 5
 
 
 def get_file_list(root):
