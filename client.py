@@ -30,7 +30,7 @@ class Client:
             return b'Query\n' + big_seed
 
         if code == 'Test' or 'Download':
-            # format: 'Test\n' + str(id) + '\n' + small_seed
+            # format: 'Test\n' + str(id) + '\n' + seed
             ret = code + '\n' + str(chunk_id) + '\n\n'
             return ret.encode() + self.seed
 
@@ -115,8 +115,6 @@ class Client:
         consumer_coro = self.consume(queue)
         loop.run_until_complete(asyncio.gather(producer_coro, consumer_coro))
 
-
-        time.sleep(1)
         print('Get accessible addr list: ')
         print(self.addr_list)
 
