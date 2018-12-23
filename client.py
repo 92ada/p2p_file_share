@@ -38,30 +38,44 @@ class Client:
     def get_response(self, message):
         pass
 
+
+
+
     async def produce(self, queue):
         # open the connection to tracker
         reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
 
-        while True:
-            writer.write(self.get_message('Join'))
-            await writer.drain()
-            data = await reader.read(100)
-            if data == b'OK': break
+        # while True:
+        #     writer.write(self.get_message('Join'))
+        #     await writer.drain()
+        #     data = await reader.read(100)
+        #     if data == b'OK': break
 
-        while True:
-            writer.write(self.get_message('Update'))
-            await writer.drain()
-            data = await reader.read(100)
-            if data == b'OK': break
+        # while True:
+        #     writer.write(self.get_message('Update'))
+        #     await writer.drain()
+        #     data = await reader.read(100)
+        #     if data == b'OK': break
 
-        while True:
-            writer.write(self.get_message('Query'))
-            await writer.drain()
-            data = await reader.read(100)
-            message = data.decode().split('\n')
-            if message[0] == 'List':
-                addr_list = message[1:]
-                break
+        # while True:
+        #     writer.write(self.get_message('Query'))
+        #     await writer.drain()
+        #     data = await reader.read(100)
+        #     message = data.decode().split('\n')
+        #     if message[0] == 'List':
+        #         addr_list = message[1:]
+        #         break
+        addr_list = []
+        for mode in ["Join", "Update", "Query"]:
+            while True:
+                writer.write(self.get_message(mode))
+                await writer.drain()
+                data = await reader.read(100)
+                # if data == b'OK':
+                message  = data.decode().split('\n') 
+
+        if message[0] == 'List':
+            addr_list = message[1:]
 
         writer.close()
         await writer.wait_closed()
@@ -109,6 +123,7 @@ class Client:
 
 
     def download(self, seed):
+        ''' Download from a given seed '''
         self.seed = seed
         loop = asyncio.get_event_loop()
         queue = asyncio.Queue(loop=loop)
