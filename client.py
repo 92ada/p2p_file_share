@@ -17,19 +17,25 @@ class Client:
         self.serve_port = 30123
 
     def get_message(self, code, chunk_id=None):
-        if code == 'Join':
-            ret = 'Join\n' + utils.get_ip() + ':' + str(self.serve_port)
-            return ret.encode()
+        # if code == 'Join':
+        #     # ret = 'Join\n' + utils.get_ip() + ':' + str(self.serve_port)
+        #     ret = 'Join\n\n'
+        #     return ret.encode()
 
         if code == 'Update':
-            seed_list = [utils.make_big_hash(path) for path in utils.get_file_list(self.root)]
-            message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
-                        + '\n' + '\n'.join(seed_list)
+            seed_list = [utils.make_seed(path) for path in utils.get_file_list(self.root)]
+            # message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
+            #             + '\n' + '\n'.join(seed_list)
+
+            message = 'Update\n\n'
+            for seed in seed_list:
+                message += seed + '\n'
+
             return message.encode()
 
         if code == 'Query':
             big_hash = self.seed.split(b'\n')[2]
-            return b'Query\n' + big_hash
+            return b'Query\n\n' + big_hash
 
         if code == 'Test' or 'Download':
             # format: 'Test\n' + str(id) + '\n' + seed
