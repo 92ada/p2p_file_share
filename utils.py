@@ -67,8 +67,8 @@ def make_seed(path):
         while True:
             data = f.read(CHUNK_SIZE)
             if not data: break
-            hash_val = get_md5_hash(data)
-            small_hash_list += '\n' + hash_val
+            small_hash = get_md5_hash(data)
+            small_hash_list += '\n' + small_hash
             big_hash_obj.update(data)
 
     ret = head + big_hash_obj.hexdigest() + small_hash_list
