@@ -48,18 +48,23 @@ def get_md5_hash(data):
     return md5obj.hexdigest()
 
 def make_seed(path):
-    # format: file_name + '\n' + str(file_len) \
+    # format: file_name + '\n' + str(file_len) + '\n' + big_seed \
     #           + '\n' + hash_val[0] + '\n' + ... + '\n' + hash_val[n]
     # notice: convert str above to bytes
     file_name = path.split('/')[-1]
     file_len = os.path.getsize(path)
-    ret = file_name + '\n' + str(file_len)
+    head = file_name + '\n' + str(file_len) + '\n'
+    small_seed_list = ''
+    big_seed_obj = hashlib.md5()
     with open(path, "rb") as f:
         while True:
             data = f.read(CHUNK_SIZE)
             if not data: break
             hash_val = get_md5_hash(data)
-            ret += '\n' + hash_val
+            small_seed_list += '\n' + hash_val
+            big_seed_obj.update(data)
+
+    ret = head + big_seed_obj.hexdigest() + small_seed_list
     return ret.encode()
 
 def make_big_seed(path):

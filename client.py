@@ -1,138 +1,145 @@
 import asyncio
 import utils
 from utils import TRACKER_IP, CHUNK_SIZE
+from threading import Thread
+import time
 
 class Client:
     def __init__(self, addr):
-        self.loop = asyncio.get_event_loop()
-        self.root = ''
-        self.data_list = None
-        self.reader, self.writer = await asyncio.open_connection(addr[0], addr[1], loop=loop)
+        self.tracker_addr = addr
+        self.addr_list = []
+        self.seed = None
+        self.data = None
+        # self.root = input('Please input your share path: ')
+        self.root = '/Users/apple/p2p_file_share'
+        self.serve_port = 30123
 
-    async def _send(self, message):
-        while True:
-            print('Send: %r' % message)
-            self.writer.write(message.encode())
+    def get_message(self, code, chunk_id=None):
+        if code == 'Join':
+            ret = 'Join\n' + utils.get_ip() + ':' + str(self.serve_port)
+            return ret.encode()
 
-            data = await reader.read(100)
-            print('Received: %r' % data.decode())
+        if code == 'Update':
+            seed_list = [utils.make_big_seed(path) for path in utils.get_file_list(self.root)]
+            message = 'Update\n' + utils.get_ip() + ':' + str(self.serve_port) \
+                        + '\n' + '\n'.join(seed_list)
+            return message.encode()
 
-            if data.decode() == 'OK':
-                break
-        return data
+        if code == 'Query':
+            big_seed = self.seed.split(b'\n')[2]
+            return b'Query\n' + big_seed
 
+        if code == 'Test' or 'Download':
+            # format: 'Test\n' + str(id) + '\n' + small_seed
+            small_seed = self.seed.split(b'\n')[2+chunk_id]
+            ret = code + '\n' + str(chunk_id) + '\n\n'
+            return ret.encode() + small_seed
 
-    def _join(self):
-        self.loop.run_until_complete(self._send('Join'))
-
-    def _quit(self):
-        self.loop.run_until_complete(self._send('Quit'))
-        print('Close the socket')
-        self.loop.close()
-
-    def _query(self, seed):
-        message = 'Query\n' + seed
-        self.loop.run_until_complete(self._send(message))
-
-    def _update(self, path):
-        seed_list = [utils.make_big_seed(path) for path in utils.get_file_list(path)]
-        message = 'Update\n' + '\n'.join(seed_list)
-        self.loop.run_until_complete(self._send(message))
-
-    def _reset(self):
-        self.loop.run_until_complete(self._send('Reset'))
-        self.loop.close()
 
     def get_response(self, message):
-        # query format (notice: convert to bytes):
-        # str('Query\n') + str(chunk_id) + '\n' + seed_info
+        pass
 
+    async def produce(self, queue):
+        reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
+        while True:
+            writer.write(self.get_message('Join'))
+            await writer.drain()
+            data = await reader.read(100)
+            if data == b'OK': break
+
+        while True:
+            writer.write(self.get_message('Update'))
+            await writer.drain()
+            data = await reader.read(100)
+            if data == b'OK': break
+
+        while True:
+            writer.write(self.get_message('Query'))
+            await writer.drain()
+            data = await reader.read(100)
+            message = data.decode().split('\n')
+            if message[0] == 'List':
+                addr_list = message[1:]
+                break
+
+        writer.close()
+        await writer.wait_closed()
+
+        for addr in addr_list:
+            # produce an item
+
+            print('add {} to the queue'.format(addr))
+            await queue.put(addr)
+
+        # indicate the producer is done
+        await queue.put(None)
+
+
+    async def consume(self, queue):
+        while True:
+            # wait for an item from the producer
+            addr = await queue.get()
+            print("in consume", addr)
+            if addr is None: continue
+            ip, port = addr.split(':')
+            reader, writer = await asyncio.open_connection(ip, port)
+
+            writer.write(self.get_message('Test', -1))
+            await writer.drain()
+            print("Send Test")
+            data = await reader.read(100)
+            print(data)
+            if data == b'OK':
+                print("Received OK")
+                self.addr_list.append((ip, port))
+            break
+
+    async def _download(self, addr, id):
+        reader, writer = await asyncio.open_connection(addr[0], addr[1])
+        writer.write(self.get_message('Download', id))
+        await writer.drain()
+        message = await reader.read(1024)
         head, data = message.split(b'\n\n')
         head_list = head.decode().split('\n')
-        if head_list[0] == 'Query':
-            chunk_id = int(head_list[1])
-            seed = head_list[2]
-            seed_path = utils.get_seed_path(self.root, seed, chunk_id)
-            if seed_path == None:
-                head = 'Result\n' + str(-1)
-                return head.encode()
-
-            data = open(path, 'rb').read()
-            push_data = data[chunk_id*CHUNK_SIZE:(chunk_id+1)*CHUNK_SIZE]
-            head = 'Result\n' + str(chunk_id) + '\n\n'
-            return head.encode() + push_data
-
-        # response format:
-        # str('Result\n') + str(chunk_id) + '\n\n' + [bytes data]
-        # if chunk_id == -1, data not found or refused
-
         if head_list[0] == 'Result':
-            chunk_id = int(head_list[1])
+            self.data[int(head_list[1])] = data
+        else:
+            print('Chunk #{} download failed', id)
 
-        if head_list[0] == 'List':
-            pass
-
-    def get_message(self, seed, id):
-        message = 'Query\n' + str(id) + '\n'
-        return message.encode() + seed
-
-
-    async def serving(self):
-        data = await reader.read(100)
-        message = data.decode()
-        print("Received %r from %r" % (message))
-        addr = self.writer.get_extra_info('peername')
-
-        response = self.get_response(message)
-        print("Send: %r" % response)
-        self.writer.write(response)
-        await self.writer.drain()
-
-        print("Close the client socket")
-        self.writer.close()
-
-    async def dispatch(self, addr_list, seed):
-        file_len = seed.split('\n')[1]
-        chunk_num = int((file_len-1)//CHUNK_SIZE + 1)
-        for addr in addr_list:
-            reader, writer = await asyncio.open_connection(addr[0], addr[1], loop=loop)
-            writer.write(self.get_message())
-
-        data = await reader.read(100)
-        message = data.decode()
-        print("Received %r from %r" % (message))
-        addr = self.writer.get_extra_info('peername')
-
-        response = self.get_response(message)
-        print("Send: %r" % response)
-        self.writer.write(response)
-        await self.writer.drain()
-
-        print("Close the client socket")
-        self.writer.close()
 
 
     def download(self, seed):
-        self.root = input('Please input a sharing path: ')
+        self.seed = seed
         loop = asyncio.get_event_loop()
-        myip = utils.get_ip()
-        coro = asyncio.start_server(self.serving, myip, 30031, loop=loop)
+        queue = asyncio.Queue(loop=loop)
+        producer_coro = self.produce(queue)
+        consumer_coro = self.consume(queue)
+        loop.run_until_complete(asyncio.gather(producer_coro, consumer_coro))
 
-        # Serve requests until Ctrl+C is pressed
-        print('Seeder Serving on {}'.format(server.sockets[0].getsockname()))
-        self._join()
-        self._update(self.root)
-        # TODO: logic here need to be edit to correspond with the doc
 
-        loop.run_until_complete(coro)
-        try:
-            loop.run_forever()
-        except KeyboardInterrupt:
-            pass
+        time.sleep(1)
+        print('Get accessible addr list: ')
+        print(self.addr_list)
+
+        addr_num = len(self.addr_list)
+        if addr_num == 0:
+            print('Download failed.')
+            return
+
+        self.data = [None] * addr_num
+        tasks = []
+        file_len = seed.decode().split('\n')[1]
+        chunk_num = (int(file_len)-1)//CHUNK_SIZE + 1
+        for id in range(chunk_num):
+            tasks.append(self._download(self.addr_list[id%addr_num], id))
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.close()
+
+
 
 
 if __name__ == '__main__':
-    seed = utils.make_seed('/Users/apple/p2p_file_share/.test.py')
+    seed = utils.make_seed('/Users/apple/p2p_file_share/README.md')
     client = Client((TRACKER_IP, 30030))
     client.download(seed)
     # client.quit()

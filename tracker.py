@@ -7,14 +7,7 @@ class Tracker:
         self.seeder_list = {}
 
     def response(self, message, addr) -> str:
-        if message == 'Join':
-            if addr in self.seeder_list.keys():
-                return b'OK'
-
-            self.seeder_list[addr] = set()
-            return b'OK'
-
-        elif message == 'Quit':
+        if message == 'Quit':
             self.seeder_list.pop(addr, None)
             return b'OK'
 
@@ -25,35 +18,41 @@ class Tracker:
         else:
             message = message.split('\n')
 
+            if message[0] == 'Join':
+                addr = message[1]
+                if addr in self.seeder_list.keys():
+                    return b'OK'
+
+                self.seeder_list[addr] = set()
+                return b'OK'
+
             if message[0] == 'Update':
+                addr = message[1]
                 print(self.seeder_list)
-                self.seeder_list[addr].update(message[1:])
+                self.seeder_list[addr].update(message[2:])
                 return b'OK'
 
             if message[0] == 'Query':
                 big_seed = message[1]
                 ret = ''
-                for s in seeder_list:
-                    if big_seed in seeder_list[s]:
-                        ret += '\n' + s[0] + ':' + s[1]
-                return b'List' + ret[1:].encode()
+                for addr in self.seeder_list:
+                    if big_seed in self.seeder_list[addr]:
+                        ret += '\n' + addr
+                return b'List' + ret.encode()
 
             return b'Error'
 
     async def dispatch(self, reader, writer):
-        data = await reader.read(100)
-        message = data.decode()
-        addr = writer.get_extra_info('peername')
-
-        response = self.response(message, addr)
-        print("Received %r from %r" % (message, addr))
-
-        print("Send: %r" % response)
-        writer.write(response)
-        await writer.drain()
-
-        print("Close the client socket")
-        writer.close()
+        while True:
+            data = await reader.read(4096)
+            if data == b'': continue
+            message = data.decode()
+            addr = writer.get_extra_info('peername')
+            response = self.response(message, addr)
+            print("Received %r from %r" % (message, addr))
+            print("Send: %r" % response)
+            writer.write(response)
+            await writer.drain()
 
 
 def main():
