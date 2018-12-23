@@ -56,7 +56,7 @@ def get_md5_hash(data):
 
 def make_seed(path):
     # format: file_name + '\n' + str(file_len) + '\n' + big_hash \
-    #           + '\n' + hash_val[0] + '\n' + ... + '\n' + hash_val[n]
+    #           + '\n' + small_hash[0] + '\n' + ... + '\n' + small_hash[n]
     # notice: convert str above to bytes
     file_name = path.split('/')[-1]
     file_len = os.path.getsize(path)
