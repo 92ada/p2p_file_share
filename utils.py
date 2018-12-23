@@ -6,7 +6,7 @@ import re
 import socket
 import hashlib
 
-TRACKER_IP = '192.168.123.29'
+TRACKER_IP = '20.21.11.26'
 TRACKER_PORT = 30030
 CHUNK_SIZE = 512
 UPDATE_INTERVAL = 5

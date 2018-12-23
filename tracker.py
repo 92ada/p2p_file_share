@@ -3,7 +3,7 @@ import utils
 from utils import TRACKER_PORT
 from utils import UPDATE_INTERVAL
 from seeder import Seeder
-from torrent import Torrent
+from torrent import Torrent, parse_torrent_str
 
 
 class Tracker:
@@ -15,18 +15,25 @@ class Tracker:
         self.torrent_list = {}
 
     def response(self, message: str, addr) -> str:
-        lines = message.splitlines()
-        code = lines[0].split()
-        lines = lines[1:]
+        parts = message.split('\n\n')
+        code = parts[0]
+        content = parts[1:]
 
-        if code[0] == 'get_torrent_list':
+        if code == 'get_torrent_list':
             return self.get_torrent_list()
-        elif code[0] == 'seed_torrent_list':
-            self.seed_torrent_list(lines, addr)
+        elif code == 'seed_torrent_list':
+            t_hash_list = []
+            for t_str in content:
+                torrent = parse_torrent_str(t_str)
+                t_hash_list.append(torrent.big_hash)
+                # add torrent
+                if torrent.big_hash not in self.torrent_list:
+                    self.torrent_list[torrent.big_hash] = torrent
+            self.seed_torrent_list(t_hash_list, addr)
             return 'OK'
-        elif code[0] == 'get_seeder_list':
-            if len(code) == 2:
-                return self.return_seeder_list(code[1])
+        elif code == 'get_seeder_list':
+            if len(content) == 1:
+                return self.return_seeder_list(content[0])
             else:
                 return 'Command Error'
         else:
@@ -84,23 +91,31 @@ class Tracker:
         ''' Return a list of torrent, each torrent is a string of torrent infrom '''
         torrent_list = ''
         for t in self.torrent_list.values():
-            torrent_list += f'{t.name} {t.size}\n'
+            torrent_list += f'{t.big_hash} {t.size}\n'
         return torrent_list
 
     def seed_torrent_list(self, t_list: list, addr):
         ''' Periodically update status and file'''
-        for t in t_list:
+        # parse torrent string
+
+        for t_hash in t_list:
             if addr in self.seeder_list:
                 seeder = self.seeder_list[addr]
             else:
                 seeder = Seeder(addr)
                 self.seeder_list[addr] = seeder
-            self.torrent_list[t].update_seeder(seeder)
+            if t_hash in self.torrent_list:
+                torrent = self.torrent_list[t_hash]
+            else:
+                torrent = Torrent(t_hash)
+                self.torrent_list[t_hash] = torrent
 
-    def return_seeder_list(self, t_name) -> str:
+            torrent.update_seeder(seeder)
+
+    def return_seeder_list(self, t_hash) -> str:
         seeder_list = ''
-        if t_name in self.torrent_list:
-            torrent = self.torrent_list[t_name]
+        if t_hash in self.torrent_list:
+            torrent = self.torrent_list[t_hash]
             for seeder in torrent.get_seeder_list():
                 seeder_list += f'{seeder.addr}\n'
         return seeder_list
