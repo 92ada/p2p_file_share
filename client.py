@@ -1,18 +1,19 @@
 import asyncio
 import utils
 from utils import TRACKER_IP, CHUNK_SIZE
+from utils import UPDATE_INTERVAL
 from threading import Thread
 import time
 import copy 
 
 class Client:
-    def __init__(self, addr):
+    def __init__(self, addr, root_path):
         self.tracker_addr = addr
         self.addr_list = []
         self.seed = None
         self.data = None
         # self.root = input('Please input your share path: ')
-        self.root = '/Users/apple/p2p_file_share'
+        self.root = root_path
         self.serve_port = 30123
 
     def get_message(self, code, chunk_id=None):
@@ -36,25 +37,26 @@ class Client:
             return ret.encode() + self.seed
 
 
-    def get_response(self, message):
-        pass
+    async def update_status(self, quit_flag=None):
+        '''Update seeds to tracker '''
+        while True:
+            reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
+            writer.write(self.get_message('Update'))
+            # print("###### File List ########")
+            # print(self.get_message('Update'))
+            await writer.drain()
+            data = await reader.read(100)
+            if not quit_flag:
+                await asyncio.sleep(UPDATE_INTERVAL)
+            else:
+                break 
 
-    async def produce(self, queue):
+    async def get_address_list(self):
+        ''' query a seed for tracker and get address list '''
         # open the connection to tracker
         reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
 
-        while True:
-            writer.write(self.get_message('Join'))
-            await writer.drain()
-            data = await reader.read(100)
-            if data == b'OK': break
-
-        while True:
-            writer.write(self.get_message('Update'))
-            await writer.drain()
-            data = await reader.read(100)
-            if data == b'OK': break
-
+        # Query given seed to checker
         while True:
             writer.write(self.get_message('Query'))
             await writer.drain()
@@ -66,17 +68,18 @@ class Client:
 
         writer.close()
         await writer.wait_closed()
+        self.addr_list = addr_list
 
-        for addr in addr_list:
-            # produce an item
-            print('add {} to the queue'.format(addr))
-            await queue.put(addr)
+        # for addr in addr_list:
+        #     # produce an item
+        #     print('add {} to the queue'.format(addr))
+        #     await queue.put(addr)
 
-        # indicate the producer is done
-        await queue.put(None)
+        # # indicate the producer is done
+        # await queue.put(None)
 
 
-    async def consume(self, queue):
+    async def seed_check(self):
         # wait for an item from the producer
         # addr = await queue.get()
         # print("in consume", addr)
@@ -112,10 +115,13 @@ class Client:
     def download(self, seed):
         self.seed = seed
         loop = asyncio.get_event_loop()
-        queue = asyncio.Queue(loop=loop)
-        producer_coro = self.produce(queue)
-        consumer_coro = self.consume(queue)
-        loop.run_until_complete(asyncio.gather(producer_coro, consumer_coro))
+        # queue = asyncio.Queue(loop=loop)
+        # producer_coro = self.produce(queue)
+        # consumer_coro = self.consume(queue)
+        # loop.run_until_complete(asyncio.gather(producer_coro, consumer_coro))
+        loop.run_until_complete(self.update_status())
+        loop.run_until_complete(self.get_address_list())
+        loop.run_until_complete(self.seed_check())
 
         print('Get accessible addr list: ')
         print(self.addr_list)
@@ -138,7 +144,8 @@ class Client:
 
 
 if __name__ == '__main__':
-    seed = utils.make_seed('/Users/apple/p2p_file_share/README.md')
-    client = Client((TRACKER_IP, 30030))
+    root_path = './'
+    seed = utils.make_seed('./README.md')
+    client = Client((TRACKER_IP, 30030),root_path)
     client.download(seed)
     # client.quit()
