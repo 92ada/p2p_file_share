@@ -17,11 +17,16 @@ class Tracker:
     def response(self, message: str, addr) -> str:
         parts = message.split('\n\n')
         code = parts[0]
-        content = parts[1:]
+        content = []
+        for p in parts[1:]:
+            if len(p):
+                content.append(p)
 
         if code == 'get_torrent_list':
             return self.get_torrent_list()
-        elif code == 'seed_torrent_list':
+        elif code == 'Update':
+            if len(content) == 0:
+                return 'No seed'
             t_hash_list = []
             for t_str in content:
                 torrent = parse_torrent_str(t_str)
@@ -30,8 +35,10 @@ class Tracker:
                 if torrent.big_hash not in self.torrent_list:
                     self.torrent_list[torrent.big_hash] = torrent
             self.seed_torrent_list(t_hash_list, addr)
+            print(self.torrent_list)
             return 'OK'
-        elif code == 'get_seeder_list':
+        elif code == 'Query':
+            return 'hello'
             if len(content) == 1:
                 return self.return_seeder_list(content[0])
             else:
@@ -44,8 +51,8 @@ class Tracker:
         message = data.decode('utf-8')
         addr = writer.get_extra_info('peername')
 
-        response = self.response(message, addr)
         print(f'From {addr} received:\n{message}')
+        response = self.response(message, addr)
 
         print(f'Response:\n{response}')
         writer.write(response.encode('utf-8'))

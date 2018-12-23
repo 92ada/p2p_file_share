@@ -6,10 +6,10 @@ import re
 import socket
 import hashlib
 
-TRACKER_IP = '20.21.11.26'
+TRACKER_IP = '10.21.11.26'
 TRACKER_PORT = 30030
 CHUNK_SIZE = 512
-UPDATE_INTERVAL = 5
+UPDATE_INTERVAL = 10
 
 
 def get_file_list(root):

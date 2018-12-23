@@ -29,7 +29,7 @@ class Torrent:
                 self.seeder_list.pop(key)
 
 
-def parse_torrent_str(self, t_str: str):
+def parse_torrent_str(t_str: str):
     t_lines = t_str.split('\n')
     name = t_lines[0]
     size = int(t_lines[1])
