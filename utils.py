@@ -25,7 +25,7 @@ def get_file_list(root):
     return result
 
 def get_seed_path(root, seed, id):
-    '''Get path of given seed '''
+    '''Get path of given seed, if given id, only do partly hash'''
     print(seed)
     seed_list = seed.decode().split('\n')
     file_len = int(seed_list[1])
@@ -64,7 +64,7 @@ def make_seed(path):
     # format: file_name + '\n' + str(file_len) + '\n' + big_hash \
     #           + '\n' + small_hash[0] + '\n' + ... + '\n' + small_hash[n]
     # notice: convert str above to bytes
-    ''' Create a seed file from given path 
+    ''' Create a seed file from given path (and related file) 
             -Input: path
             -Output: encoded value 
     '''
@@ -85,6 +85,7 @@ def make_seed(path):
     return ret.encode()
 
 def make_big_hash(path):
+    ''' Make hash for given file '''
     md5obj = hashlib.md5()
     with open(path, "rb") as f:
         while True:

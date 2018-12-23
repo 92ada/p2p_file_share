@@ -16,17 +16,17 @@ class Tracker:
 
     def response(self, message: str, addr) -> str:
         lines = message.splitlines()
-        cmd = lines[0].split()
+        code = lines[0].split()
         lines = lines[1:]
 
-        if cmd[0] == 'get_torrent_list':
+        if code[0] == 'get_torrent_list':
             return self.get_torrent_list()
-        elif cmd[0] == 'seed_torrent_list':
+        elif code[0] == 'seed_torrent_list':
             self.seed_torrent_list(lines, addr)
             return 'OK'
-        elif cmd[0] == 'get_seeder_list':
-            if len(cmd) == 2:
-                return self.return_seeder_list(cmd[1])
+        elif code[0] == 'get_seeder_list':
+            if len(code) == 2:
+                return self.return_seeder_list(code[1])
             else:
                 return 'Command Error'
         else:
@@ -48,6 +48,7 @@ class Tracker:
         writer.close()
 
     async def update_torrent_seeder(self):
+        ''' After certain interval, check timestamp of all seeds to see if it's out of date (get del if out of date) '''
         while True:
             await asyncio.sleep(UPDATE_INTERVAL)
             print('update_torrent_seeder')
@@ -56,7 +57,6 @@ class Tracker:
 
     def run(self):
         loop = asyncio.get_event_loop()
-
         server_start = asyncio.start_server(self.dispatch, '', TRACKER_PORT, loop=loop)
         server = loop.run_until_complete(server_start)
         addr = server.sockets[0].getsockname()
@@ -81,12 +81,14 @@ class Tracker:
         loop.close()
 
     def get_torrent_list(self) -> str:
+        ''' Return a list of torrent, each torrent is a string of torrent infrom '''
         torrent_list = ''
         for t in self.torrent_list.values():
             torrent_list += f'{t.name} {t.size}\n'
         return torrent_list
 
     def seed_torrent_list(self, t_list: list, addr):
+        ''' Periodically update status and file'''
         for t in t_list:
             if addr in self.seeder_list:
                 seeder = self.seeder_list[addr]

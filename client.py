@@ -3,6 +3,7 @@ import utils
 from utils import TRACKER_IP, CHUNK_SIZE
 from threading import Thread
 import time
+import copy 
 
 class Client:
     def __init__(self, addr):
@@ -76,14 +77,15 @@ class Client:
 
 
     async def consume(self, queue):
-        while True:
-            # wait for an item from the producer
-            addr = await queue.get()
-            print("in consume", addr)
-            if addr is None: continue
+        # wait for an item from the producer
+        # addr = await queue.get()
+        # print("in consume", addr)
+        # if addr is None: continue
+        addr_list = copy.deepcopy(self.addr_list)
+        self.addr_list = []
+        for addr in addr_list:
             ip, port = addr.split(':')
             reader, writer = await asyncio.open_connection(ip, port)
-
             writer.write(self.get_message('Test', -1))
             await writer.drain()
             print("Send Test")
@@ -92,7 +94,6 @@ class Client:
             if data == b'OK':
                 print("Received OK")
                 self.addr_list.append((ip, port))
-            break
 
     async def _download(self, addr, id):
         reader, writer = await asyncio.open_connection(addr[0], addr[1])
@@ -127,6 +128,7 @@ class Client:
         tasks = []
         file_len = seed.decode().split('\n')[1]
         chunk_num = (int(file_len)-1)//CHUNK_SIZE + 1
+        # open a list with size of chunk num
         self.data = [None] * chunk_num
         for id in range(chunk_num):
             tasks.append(self._download(self.addr_list[id%addr_num], id))

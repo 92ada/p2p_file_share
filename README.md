@@ -105,3 +105,61 @@ user：
    1. 进网请求部分
    2. 周期性维护状态
    3. report & slides
+
+
+
+# 补充信息
+
+seed: 文件名+文件长度+完整文件内容哈希+分部分哈希
+
+下载过程：
+
+1. 假定seed是client已经有的
+2. client请求文件的时候会把 seed中文件的哈希部分发给tracker
+3. tracker根据哈希返回所有认为可以用的address list
+4. client通过"Test"向address list里面的address询问是否还有这个文件
+5. 根据strategy确定下载地址，并且用异步io下载
+
+
+
+tracker工作逻辑：
+
+1. 启动server，监听收到的信息。如果收到了对应的信息，做处理。信息种类包括：
+   1. get_torrent_list : 返回所有一个list，里面的种子
+   2. seed_torrent_list：根据发过来的信息更新种子状态
+   3. get_seeder_list: 返回一个有请求的种子的address的list
+2. 任务2:根据每一个list上一次更新的时间，删除过期的list
+
+
+
+当前任务：
+
+1. 最后文件的组装和写入
+2. 不同的seed的format的处理逻辑
+3. producer + consumer 简化
+
+
+
+seed相关函数：
+
+```python
+def make_seed(path):
+    # format: file_name + '\n' + str(file_len) + '\n' + big_hash \
+    #           + '\n' + small_hash[0] + '\n' + ... + '\n' + small_hash[n]
+    # notice: convert str above to bytes
+    ''' Create a seed file from given path (and related file) 
+            -Input: path
+            -Output: encoded value 
+    '''
+    
+def make_big_hash(path):
+    ''' Make hash for given file '''
+    
+def make_big_hash(path):
+    ''' Make hash for given file '''
+```
+
+
+
+
+
