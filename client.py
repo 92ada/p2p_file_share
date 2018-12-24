@@ -88,19 +88,16 @@ class Client:
             reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
             writer.write(self.get_message('Query'))
             await writer.drain()
-            writer.close()
-            reader, writer = await asyncio.open_connection(self.tracker_addr[0], self.tracker_addr[1])
-            # print("Flag")
+            print("Flag")
             data = await reader.read(100)
-            # print("Flag")
+            print("Flag")
             print("Message Origin:{}".format(data))
             message = data.decode().split('\n')
-            # print("Message:{}".format(message))
+            print("Message:{}".format(message))
             if message[0] == 'List':
+                writer.close()
                 addr_list = message[1:]
                 break
-
-        # writer.close()
         # await writer.wait_closed()
 
         # writer.close()
@@ -126,12 +123,16 @@ class Client:
         addr_list = copy.deepcopy(self.addr_list)
         self.addr_list = []
         for addr in addr_list:
+            print("Address:{}".format(addr))
+            if ":" not in addr:
+                continue
             ip, port = addr.split(':')
-            reader, writer = await asyncio.open_connection(ip, port)
+            reader, writer = await asyncio.open_connection(ip, int(port))
+            print("connection open")
             writer.write(self.get_message('Test', -1))
             await writer.drain()
             print("Send Test")
-            data = await reader.read(100)
+            data = await reader.read(10000)
             print(data)
             if data == b'OK':
                 print("Received OK")
@@ -154,14 +155,8 @@ class Client:
     def download(self, seed):
         self.seed = seed
         loop = asyncio.get_event_loop()
-        # queue = asyncio.Queue(loop=loop)
-        # producer_coro = self.produce(queue)
-        # consumer_coro = self.consume(queue)
-        # loop.run_until_complete(asyncio.gather(producer_coro, consumer_coro))
-        if self.root:
-            loop.run_until_complete(self.update_status())
         loop.run_until_complete(self.get_address_list())
-        print("List Get")
+        print("Get Address List:{}".format(self.addr_list))
         loop.run_until_complete(self.seed_check())
 
         print('Get accessible addr list: ')
@@ -195,7 +190,7 @@ if __name__ == '__main__':
 
 # def download(seed, root_path=None):
 #     # root_path = './'
-#     # seed = utils.make_seed('./README.md')
+#     # seed = utils.make_seed('../README.md')
 #     client = Client((TRACKER_IP, 30030), root_path=root_path)
 #     client.download(seed)
-#     client.quit()
+#     # client.quit()
