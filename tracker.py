@@ -16,17 +16,21 @@ class Tracker:
 
     def response(self, message: str, addr) -> str:
         parts = message.split('\n\n')
-        code = parts[0]
+        code = parts[0].split(' ')
         content = []
         for p in parts[1:]:
             if len(p):
                 content.append(p)
 
-        if code == 'get_torrent_list':
+        if code[0] == 'get_torrent_list':
             return self.get_torrent_list()
-        elif code == 'Update':
+        elif code[0] == 'Update':
             if len(content) == 0:
                 return 'No seed'
+            if len(code) == 2:
+                port = int(code[1])
+            else:
+                return 'Command Error'
             t_hash_list = []
             for t_str in content:
                 torrent = parse_torrent_str(t_str)
@@ -34,11 +38,10 @@ class Tracker:
                 # add torrent
                 if torrent.big_hash not in self.torrent_list:
                     self.torrent_list[torrent.big_hash] = torrent
-            self.seed_torrent_list(t_hash_list, addr)
+            self.seed_torrent_list(t_hash_list, (addr[0], port))
             print(self.torrent_list)
             return 'OK'
-        elif code == 'Query':
-            return 'hello'
+        elif code[0] == 'Query':
             if len(content) == 1:
                 return self.return_seeder_list(content[0])
             else:
@@ -47,7 +50,7 @@ class Tracker:
             return 'Command Error'
 
     async def dispatch(self, reader, writer):
-        data = await reader.read()
+        data = await reader.read(10240)
         message = data.decode('utf-8')
         addr = writer.get_extra_info('peername')
 
@@ -120,11 +123,11 @@ class Tracker:
             torrent.update_seeder(seeder)
 
     def return_seeder_list(self, t_hash) -> str:
-        seeder_list = ''
+        seeder_list = 'List\n'
         if t_hash in self.torrent_list:
             torrent = self.torrent_list[t_hash]
             for seeder in torrent.get_seeder_list():
-                seeder_list += f'{seeder.addr}\n'
+                seeder_list += f'{seeder.addr[0]}:{seeder.addr[1]}\n'
         return seeder_list
 
 
