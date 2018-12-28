@@ -15,6 +15,7 @@ class Tracker:
         self.torrent_list = {}
 
     def response(self, message: str, addr) -> str:
+        """ according to the request, response the requested resource or handle result """
         parts = message.split('\n\n')
         code = parts[0].split(' ')
         content = []
@@ -28,17 +29,19 @@ class Tracker:
             if len(content) == 0:
                 return 'No seed'
             if len(code) == 2:
+                # get seeder port
                 port = int(code[1])
             else:
                 return 'Command Error'
             t_hash_list = []
             for t_str in content:
+                # make a torrent object
                 torrent = parse_torrent_str(t_str)
                 t_hash_list.append(torrent.big_hash)
                 # add torrent
                 if torrent.big_hash not in self.torrent_list:
                     self.torrent_list[torrent.big_hash] = torrent
-            self.seed_torrent_list(t_hash_list, (addr[0], port))
+            self.seed_torrent_list(t_hash_list, (addr[0], port))  # register seeder
             print(self.torrent_list)
             return 'OK'
         elif code[0] == 'Query':
@@ -50,6 +53,7 @@ class Tracker:
             return 'Command Error'
 
     async def dispatch(self, reader, writer):
+        """ coroutine for receive and response request """
         data = await reader.read(10240)
         message = data.decode('utf-8')
         addr = writer.get_extra_info('peername')
@@ -73,6 +77,7 @@ class Tracker:
                 t.update_seeder_list()
 
     def run(self):
+        """ start tracker using asyncio """
         loop = asyncio.get_event_loop()
         server_start = asyncio.start_server(self.dispatch, '', TRACKER_PORT, loop=loop)
         server = loop.run_until_complete(server_start)
@@ -123,6 +128,7 @@ class Tracker:
             torrent.update_seeder(seeder)
 
     def return_seeder_list(self, t_hash) -> str:
+        """ get the seeder list of the torrent of t_hash """
         seeder_list = 'List\n'
         if t_hash in self.torrent_list:
             torrent = self.torrent_list[t_hash]

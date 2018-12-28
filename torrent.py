@@ -14,7 +14,7 @@ class Torrent:
         self.size = size
         self.big_hash = big_hash
         self.chuck_hash = chuck_hash
-        self.seeder_list = {}
+        self.seeder_list = {}  # seeders register seeding this torrent
 
     def get_seeder_list(self) -> list:
         return list(self.seeder_list.keys())
@@ -23,6 +23,7 @@ class Torrent:
         self.seeder_list[seeder] = time.time()
 
     def update_seeder_list(self):
+        """ remove out-of-date seeder """
         time_now = time.time()
         for key in self.seeder_list.keys():
             if self.seeder_list[key] + UPDATE_INTERVAL < time_now:
